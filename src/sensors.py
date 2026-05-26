@@ -1,7 +1,9 @@
 import time
 
-from engine import front_left, front_right, rear_left, rear_right, stop_all
 from gpiozero import LineSensor
+
+# from engine import front_left, front_right, rear_left, rear_right, stop_all
+import engine
 
 line_sensor_right = LineSensor(23)
 line_sensor_middle = LineSensor(15)
@@ -29,6 +31,7 @@ def left_is_over_black():
     return bool(sensor_value)
 
 
+engine.init()
 while True:
     status_right = right_is_over_black()
     status_middle = middle_is_over_black()
@@ -36,28 +39,53 @@ while True:
 
     if status_right and not status_middle and not status_left:
         print("Motors running")
-        front_left(30)
-        front_right(10)
-        rear_left(30)
-        rear_right(10)
+        engine.front_left(20)
+        engine.front_right(5)
+        engine.rear_left(20)
+        engine.rear_right(5)
+        if not status_right and status_middle and not status_left:
+            break
+        else:
+            engine.front_left(25)
+            engine.front_right(-15)
+            engine.rear_left(25)
+            engine.rear_right(-15)
     elif status_middle and not status_left and not status_right:
         print("Motors running")
-        front_left(20)
-        front_right(20)
-        rear_left(20)
-        rear_right(20)
+        engine.front_left(15)
+        engine.front_right(15)
+        engine.rear_left(15)
+        engine.rear_right(15)
     elif status_left and not status_middle and not status_right:
         print("Motors running")
-        front_left(10)
-        front_right(30)
-        rear_left(10)
-        rear_right(30)
-
+        engine.front_left(5)
+        engine.front_right(20)
+        engine.rear_left(5)
+        engine.rear_right(20)
+        if not status_right and status_middle and not status_left:
+            break
+        else:
+            engine.front_left(-15)
+            engine.front_right(25)
+            engine.rear_left(-15)
+            engine.rear_right(25)
+    elif status_right and status_middle and not status_left:
+        print("Motors running")
+        engine.front_left(10)
+        engine.front_right(20)
+        engine.rear_left(10)
+        engine.rear_right(20)
+    elif status_left and status_middle and not status_right:
+        print("Motors running")
+        engine.front_left(20)
+        engine.front_right(10)
+        engine.rear_left(20)
+        engine.rear_right(10)
+    elif status_right and status_middle and status_left:
+        print("Error")
+        engine.stop_all()
     else:
-        print("no valid condition")
-        print(status_right)
-        stop_all()
-
+        print("ongoing")
 
 # while True:
 # if line_sensor_right.value == 0:
