@@ -115,10 +115,5 @@ def front_right(speed=0):
 if __name__ == "__main__":
     init()
 
-    front_left(50)
-    front_right(50)
-    rear_left(50)
-    rear_right(50)
-
-    time.sleep(2)
     stop_all()
+    time.sleep(2)

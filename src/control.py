@@ -8,37 +8,37 @@ Kp = 30.0
 Kd = 10.0
 
 # Grundgeschwindigkeit
-BASE_SPEED = 60
+BASE_SPEED = 20
 
 last_error = 0
 
 
-def calculate_error():
+def calculate_error(status_left, status_middle, status_right):
     """
     True = Linie erkannt
     """
 
     # Linie mittig
-    if not sensors.status_left and sensors.status_middle and not sensors.status_right:
+    if not status_left and status_middle and not status_right:
         return 0.0
 
     # Linie links
-    elif sensors.status_left and not sensors.status_middle and not sensors.status_right:
+    elif status_left and not status_middle and not status_right:
         return -1.0
 
     # Linie rechts
-    elif not sensors.status_left and not sensors.status_middle and sensors.status_right:
+    elif not status_left and not status_middle and status_right:
         return 1.0
 
     # Zwischenpositionen
-    elif sensors.status_left and sensors.status_middle and not sensors.status_right:
+    elif status_left and status_middle and not status_right:
         return -0.5
 
-    elif not sensors.status_left and sensors.status_middle and sensors.status_right:
+    elif not status_left and status_middle and status_right:
         return 0.5
 
     # Kreuzung oder alle Sensoren auf Linie
-    elif sensors.status_left and sensors.status_middle and sensors.status_right:
+    elif status_left and status_middle and status_right:
         return 0.0
 
     # Linie verloren
@@ -46,37 +46,45 @@ def calculate_error():
         return None
 
 
-while True:
-    # Sensoren lesen
-    # left = read_left_sensor()      # True / False
-    # center = read_center_sensor()  # True / False
-    # right = read_right_sensor()    # True / False
+if __name__ == "__main__":
+    engine.init()
+    while True:
+        # Sensoren lesen
+        # left = read_left_sensor()      # True / False
+        # center = read_center_sensor()  # True / False
+        # right = read_right_sensor()    # True / False
 
-    error = calculate_error()
+        status_right = sensors.right_is_over_black()
+        status_middle = sensors.middle_is_over_black()
+        status_left = sensors.left_is_over_black()
+        error = calculate_error(status_left, status_middle, status_right)
 
-    # Linie verloren
-    if error is None:
-        error = last_error
+        # Linie verloren
+        if error is None:
+            error = last_error
 
-    # D-Anteil
-    derivative = error - last_error
+        # D-Anteil
+        derivative = error - last_error
 
-    # PD-Regler
-    correction = Kp * error + Kd * derivative
+        # PD-Regler
+        correction = Kp * error + Kd * derivative
 
-    # Motorgeschwindigkeiten
-    speed_left = BASE_SPEED - round(correction)
-    speed_right = BASE_SPEED + round(correction)
+        # Motorgeschwindigkeiten
+        dynamic_base_speed = BASE_SPEED - (abs(error) * 20)
+        speed_left = dynamic_base_speed + round(correction)
+        speed_right = dynamic_base_speed - round(correction)
 
-    # Begrenzen
-    speed_left = max(-100, min(100, speed_left))
-    speed_right = max(-100, min(100, speed_right))
+        # Begrenzen
+        speed_left = max(-100, min(100, speed_left))
+        speed_right = max(-100, min(100, speed_right))
 
-    engine.front_left(speed_left)
-    engine.rear_left(speed_left)
-    engine.front_right(speed_right)
-    engine.rear_right(speed_right)
+        print(f"Error: {error} | Speed Left: {speed_left} | Speed Right: {speed_right}")
 
-    last_error = error
+        engine.front_left(int(speed_left))
+        engine.rear_left(int(speed_left))
+        engine.front_right(int(speed_right))
+        engine.rear_right(int(speed_right))
 
-    time.sleep(0.02)  # 50 Hz
+        last_error = error
+
+        time.sleep(0.01)  # 50 Hz
