@@ -6,11 +6,12 @@ import sensors
 # PD-Konstanten
 Kp = 30.0
 Kd = 10.0
-
+Ki = 0.5
 # Grundgeschwindigkeit
 BASE_SPEED = 20
 
 last_error = 0
+integral = 0
 
 
 def calculate_error(status_left, status_middle, status_right):
@@ -57,17 +58,23 @@ if __name__ == "__main__":
         status_right = sensors.right_is_over_black()
         status_middle = sensors.middle_is_over_black()
         status_left = sensors.left_is_over_black()
+
         error = calculate_error(status_left, status_middle, status_right)
 
         # Linie verloren
         if error is None:
             error = last_error
-
+            integral = 0
         # D-Anteil
         derivative = error - last_error
 
+        # I-Anteil
+        integral = integral + error
+
+        # Integral limitieren
+        integral = max(-20, min(20, integral))
         # PD-Regler
-        correction = Kp * error + Kd * derivative
+        correction = Kp * error + Kd * derivative + Ki * integral
 
         # Motorgeschwindigkeiten
         dynamic_base_speed = BASE_SPEED - (abs(error) * 20)
