@@ -8,7 +8,7 @@ Kp = 20
 Kd = 15
 Ki = 0.5
 # Grundgeschwindigkeit
-BASE_SPEED = 30
+BASE_SPEED = 27
 
 last_error = 0
 integral = 0
