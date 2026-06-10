@@ -7,6 +7,7 @@ import sensors
 Kp = 20
 Kd = 15
 Ki = 0.5
+Ks = 15
 # Grundgeschwindigkeit
 BASE_SPEED = 27
 
@@ -15,9 +16,6 @@ integral = 0
 
 
 def calculate_error(status_left, status_middle, status_right):
-    """
-    True = Linie erkannt
-    """
 
     # Linie mittig
     if not status_left and status_middle and not status_right:
@@ -52,9 +50,6 @@ if __name__ == "__main__":
     try:
         while True:
             # Sensoren lesen
-            # left = read_left_sensor()      # True / False
-            # center = read_center_sensor()  # True / False
-            # right = read_right_sensor()    # True / False
 
             status_right = sensors.right_is_over_black()
             status_middle = sensors.middle_is_over_black()
@@ -78,7 +73,7 @@ if __name__ == "__main__":
             correction = Kp * error + Kd * derivative + Ki * integral
 
             # Motorgeschwindigkeiten
-            dynamic_base_speed = BASE_SPEED - (abs(error) * 15)
+            dynamic_base_speed = BASE_SPEED - (abs(error) * Ks)
             speed_left = dynamic_base_speed + round(correction)
             speed_right = dynamic_base_speed - round(correction)
 
@@ -86,7 +81,9 @@ if __name__ == "__main__":
             speed_left = max(-100, min(100, speed_left))
             speed_right = max(-100, min(100, speed_right))
 
-            print(f"Error: {error} | Speed Left: {speed_left} | Speed Right: {speed_right}")
+            print(
+                f"Error: {error} | Speed Left: {speed_left} | Speed Right: {speed_right}"
+            )
 
             engine.front_left(int(speed_left))
             engine.rear_left(int(speed_left))
