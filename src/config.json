@@ -1,5 +1,5 @@
 {
-    "refreshrate Hz": 100,
+    "refreshrate Hz": 200,
     "base speed": 25,
     "proportional factor": 20,
     "integral factor": 0.5,
