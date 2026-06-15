@@ -1,7 +1,3 @@
-import time
-
-# from engine import front_left, front_right, rear_left, rear_right, stop_all
-import engine
 from gpiozero import LineSensor
 
 line_sensor_right = LineSensor(23)
@@ -11,78 +7,49 @@ line_sensor_left = LineSensor(14)
 
 def right_is_over_black():
     sensor_value = line_sensor_right.value
-    print("right sensor:", sensor_value)
-    print(bool(sensor_value))
     return bool(sensor_value)
 
 
 def middle_is_over_black():
     sensor_value = line_sensor_middle.value
-    print("middle sensor:", sensor_value)
-    print(bool(sensor_value))
     return bool(sensor_value)
 
 
 def left_is_over_black():
     sensor_value = line_sensor_left.value
-    print("right sensor:", sensor_value)
-    print(bool(sensor_value))
     return bool(sensor_value)
 
 
-if __name__ == "__main__":
-    engine.init()
-    while True:
-        status_right = right_is_over_black()
-        status_middle = middle_is_over_black()
-        status_left = left_is_over_black()
+def calculate_error(status_left, status_middle, status_right):
+    FULL_LEFT = -1.0
+    HALF_LEFT = -0.5
+    MID = 0.0
+    HALF_RIGHT = -0.5
+    FULL_RIGHT = 1.0
 
-        if status_right and not status_middle and not status_left:
-            print("Motors running")
-            engine.front_left(20)
-            engine.front_right(5)
-            engine.rear_left(20)
-            engine.rear_right(5)
-            if not status_right and status_middle and not status_left:
-                break
-            else:
-                engine.front_left(25)
-                engine.front_right(-15)
-                engine.rear_left(25)
-                engine.rear_right(-15)
-        elif status_middle and not status_left and not status_right:
-            print("Motors running")
-            engine.front_left(15)
-            engine.front_right(15)
-            engine.rear_left(15)
-            engine.rear_right(15)
-        elif status_left and not status_middle and not status_right:
-            print("Motors running")
-            engine.front_left(5)
-            engine.front_right(20)
-            engine.rear_left(5)
-            engine.rear_right(20)
-            if not status_right and status_middle and not status_left:
-                break
-            else:
-                engine.front_left(-15)
-                engine.front_right(25)
-                engine.rear_left(-15)
-                engine.rear_right(25)
-        elif status_right and status_middle and not status_left:
-            print("Motors running")
-            engine.front_left(10)
-            engine.front_right(20)
-            engine.rear_left(10)
-            engine.rear_right(20)
-        elif status_left and status_middle and not status_right:
-            print("Motors running")
-            engine.front_left(20)
-            engine.front_right(10)
-            engine.rear_left(20)
-            engine.rear_right(10)
-        elif status_right and status_middle and status_left:
-            print("Error")
+    # Linie mittig
+    if not status_left and status_middle and not status_right:
+        return MID
 
-        else:
-            print("ongoing")
+    # Linie links
+    elif status_left and not status_middle and not status_right:
+        return FULL_LEFT
+
+    # Linie rechts
+    elif not status_left and not status_middle and status_right:
+        return FULL_RIGHT
+
+    # Zwischenpositionen
+    elif status_left and status_middle and not status_right:
+        return HALF_LEFT
+
+    elif not status_left and status_middle and status_right:
+        return HALF_RIGHT
+
+    # Kreuzung oder alle Sensoren auf Linie
+    elif status_left and status_middle and status_right:
+        return MID
+
+    # Linie verloren
+    else:
+        return None

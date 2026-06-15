@@ -1,97 +1,59 @@
 import time
 
-import engine
 import sensors
 
-# PD-Konstanten
-Kp = 20
-Kd = 15
-Ki = 0.5
-Ks = 15
-# Grundgeschwindigkeit
-BASE_SPEED = 27
-
-last_error = 0
-integral = 0
+# Variablen global speichern für den nächsten Durchlauf
+last_error = 0.0
+integral = 0.0
 
 
-def calculate_error(status_left, status_middle, status_right):
+def speed_correction(refreshrate_Hz, base_speed, kp, ki, kd, ks):
+    global last_error, integral
 
-    # Linie mittig
-    if not status_left and status_middle and not status_right:
-        return 0.0
+    MAX_Integral = 250
+    MAX_Speed = 100
+    integral_reset = 0
+    sleep_time_refresh = 1 / refreshrate_Hz
 
-    # Linie links
-    elif status_left and not status_middle and not status_right:
-        return -1.0
+    # Sensoren lesen
+    status_right = sensors.right_is_over_black()
+    status_middle = sensors.middle_is_over_black()
+    status_left = sensors.left_is_over_black()
 
-    # Linie rechts
-    elif not status_left and not status_middle and status_right:
-        return 1.0
+    error = sensors.calculate_error(status_left, status_middle, status_right)
 
-    # Zwischenpositionen
-    elif status_left and status_middle and not status_right:
-        return -0.5
+    # if line is lost -> reset integral and use last error as current
+    if error is None:
+        error = last_error
+        integral = integral_reset
 
-    elif not status_left and status_middle and status_right:
-        return 0.5
+    # D-Anteil
+    derivative = error - last_error
 
-    # Kreuzung oder alle Sensoren auf Linie
-    elif status_left and status_middle and status_right:
-        return 0.0
+    # I-Anteil
+    integral = integral + error
 
-    # Linie verloren
-    else:
-        return None
+    # Integral limitieren
+    integral = max(-MAX_Integral, min(MAX_Integral, integral))
 
+    # PID-Regler (Groß/Kleinschreibung an die Parameter angepasst!)
+    correction = kp * error + kd * derivative + ki * integral
 
-if __name__ == "__main__":
-    engine.init()
-    try:
-        while True:
-            # Sensoren lesen
+    # Motorgeschwindigkeiten
+    dynamic_base_speed = base_speed - (abs(error) * ks)
+    speed_left = dynamic_base_speed + round(correction)
+    speed_right = dynamic_base_speed - round(correction)
 
-            status_right = sensors.right_is_over_black()
-            status_middle = sensors.middle_is_over_black()
-            status_left = sensors.left_is_over_black()
+    # Begrenzen
+    speed_left = max(-MAX_Speed, min(MAX_Speed, speed_left))
+    speed_right = max(-MAX_Speed, min(MAX_Speed, speed_right))
 
-            error = calculate_error(status_left, status_middle, status_right)
+    # Shows current error and speed for debugging
+    print(f"Error: {error} | Speed Left: {speed_left} | Speed Right: {speed_right}")
 
-            # Linie verloren
-            if error is None:
-                error = last_error
-                integral = 0
-            # D-Anteil
-            derivative = error - last_error
+    last_error = error
 
-            # I-Anteil
-            integral = integral + error
+    time.sleep(sleep_time_refresh)
 
-            # Integral limitieren
-            integral = max(-250, min(250, integral))
-            # PD-Regler
-            correction = Kp * error + Kd * derivative + Ki * integral
-
-            # Motorgeschwindigkeiten
-            dynamic_base_speed = BASE_SPEED - (abs(error) * Ks)
-            speed_left = dynamic_base_speed + round(correction)
-            speed_right = dynamic_base_speed - round(correction)
-
-            # Begrenzen
-            speed_left = max(-100, min(100, speed_left))
-            speed_right = max(-100, min(100, speed_right))
-
-            print(
-                f"Error: {error} | Speed Left: {speed_left} | Speed Right: {speed_right}"
-            )
-
-            engine.front_left(int(speed_left))
-            engine.rear_left(int(speed_left))
-            engine.front_right(int(speed_right))
-            engine.rear_right(int(speed_right))
-
-            last_error = error
-
-            time.sleep(0.005)  # 50 Hz
-    except:
-        engine.stop_all()
+    # Jetzt wird diese Zeile endlich erreicht und die Werte gehen ans Hauptprogramm!
+    return speed_left, speed_right
